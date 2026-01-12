@@ -150,6 +150,29 @@ fi
 
 #==================== 依赖安装 ====================#
 
+# 检查必要依赖是否已安装
+check_deps() {
+    local missing_deps=""
+    for cmd in curl wget jq git; do
+        if ! command -v $cmd &>/dev/null; then
+            missing_deps="$missing_deps $cmd"
+        fi
+    done
+    
+    if [ -n "$missing_deps" ]; then
+        return 1
+    fi
+    return 0
+}
+
+# 确保依赖已安装
+ensure_deps() {
+    if ! check_deps; then
+        log_warn "检测到缺少必要依赖，正在安装..."
+        install_deps
+    fi
+}
+
 # 安装依赖
 install_deps() {
     log_progress "开始安装依赖包..."
@@ -249,9 +272,28 @@ download_sing_box() {
     
     if [ "$SING_BOX_VERSION" == "latest" ]; then
         log_info "获取最新版本号..."
-        SING_BOX_VERSION=$(curl -sL https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name' | sed 's/v//')
+        
+        # 优先使用 jq
+        if command -v jq &>/dev/null; then
+            SING_BOX_VERSION=$(curl -sL https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name' | sed 's/v//')
+        else
+            # 备用方案1：使用 grep 和 cut
+            SING_BOX_VERSION=$(curl -sL https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4 | sed 's/^v//' | head -1)
+            
+            # 备用方案2：如果方案1失败，使用 awk
+            if [ -z "$SING_BOX_VERSION" ]; then
+                SING_BOX_VERSION=$(curl -sL https://api.github.com/repos/SagerNet/sing-box/releases/latest | awk -F'"' '/"tag_name"/{print $4}' | sed 's/^v//' | head -1)
+            fi
+            
+            # 备用方案3：如果还是失败，使用 sed
+            if [ -z "$SING_BOX_VERSION" ]; then
+                SING_BOX_VERSION=$(curl -sL https://api.github.com/repos/SagerNet/sing-box/releases/latest | sed -n 's/.*"tag_name":"v*\([^"]*\)".*/\1/p' | head -1)
+            fi
+        fi
+        
         if [ -z "$SING_BOX_VERSION" ] || [ "$SING_BOX_VERSION" == "null" ]; then
             log_error "无法获取 sing-box 最新版本号"
+            log_warn "请尝试先运行 'vproxy --install' 安装依赖，或手动指定版本号"
             return 1
         fi
     fi
@@ -635,6 +677,7 @@ menu() {
         
         case $choice in
             1) 
+                ensure_deps  # 先确保依赖已安装
                 download_sing_box
                 install_anytls
                 read -p "按回车继续..."
@@ -774,10 +817,26 @@ main() {
 
 #==================== 主入口 ====================#
 
+# 检查是否已安装
+is_installed() {
+    [ -f "$SING_BOX_BIN" ] && [ -f "$SCRIPT_PATH" ]
+}
+
 # 根据参数决定执行什么操作
 case "$1" in
     menu|"")
-        menu
+        if ! is_installed; then
+            log_warn "检测到 VProxy 尚未安装"
+            read -p "是否现在进行完整安装？(Y/n): " install_choice
+            if [ "$install_choice" != "n" ] && [ "$install_choice" != "N" ]; then
+                main
+            else
+                log_info "跳过安装，进入菜单（部分功能可能不可用）"
+                menu
+            fi
+        else
+            menu
+        fi
         ;;
     --install)
         main
