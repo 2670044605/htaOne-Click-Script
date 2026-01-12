@@ -1,20 +1,27 @@
 # htaOne-Click-Script
 
+![Version](https://img.shields.io/badge/version-v2.1.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Platform](https://img.shields.io/badge/platform-Linux-lightgrey)
+
 ## 简介 / Introduction
+
 这是一个基于 [sing-box](https://github.com/SagerNet/sing-box) 的终极一键搭建脚本，支持 **Hysteria2 (hy2)**、**TUIC v5** 和 **AnyTLS** 协议。
 本脚本灵感来源于 `mack-a/v2ray-agent`，旨在提供一个简单、高效且功能强大的代理搭建解决方案。
 
-**当前版本**: v2.0.0 (2026-01-12)
+**当前版本**: v2.1.0 (2026-01-12)
 
 ## ✨ 特性 / Features
+
 - **多协议支持**: 一键部署 Hysteria2, TUIC v5, AnyTLS
 - **广泛兼容**: 支持 Debian, Ubuntu, CentOS, RHEL, Fedora, Alpine, Arch, openSUSE 等主流 Linux 发行版
+- **智能安装**: 首次运行自动检测并提示完整安装，避免依赖缺失问题
 - **自动管理**: 包含自动证书申请与续期 (acme.sh)、自动安装 sing-box 核心
 - **管理面板**: 提供命令行管理菜单，安装后直接使用 `vproxy` 命令
 - **安全性**: 自动配置防火墙规则，支持 Fail2ban
 - **分流规则**: 内置基础分流规则（如屏蔽 BT，Warp 分流等）
 - **备份与恢复**: 支持配置文件的备份与恢复
-- **健壮性**: 完善的错误处理，安装过程不会因小问题中断
+- **健壮性**: 完善的错误处理，多重备用方案，安装过程不会因小问题中断
 
 ## 📋 系统要求 / Requirements
 
@@ -34,17 +41,25 @@
 
 ## 🚀 快速安装 / Quick Install
 
-**一键安装（推荐）**：
+**一键完整安装（推荐）**：
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/2670044605/htaOne-Click-Script/main/install.sh)
+bash <(curl -sL https://raw.githubusercontent.com/2670044605/htaOne-Click-Script/main/install.sh) --install
 ```
 
 或者使用 wget：
 
 ```bash
-bash <(wget -qO- https://raw.githubusercontent.com/2670044605/htaOne-Click-Script/main/install.sh)
+bash <(wget -qO- https://raw.githubusercontent.com/2670044605/htaOne-Click-Script/main/install.sh) --install
 ```
+
+**交互式安装**（首次运行会自动提示）：
+
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/2670044605/htaOne-Click-Script/main/install.sh)
+```
+
+> 💡 首次运行时，脚本会自动检测是否已安装，如未安装会提示 "是否现在进行完整安装？"
 
 ## 📖 使用说明 / Usage
 
@@ -56,9 +71,8 @@ vproxy
 
 # 或者使用以下参数
 vproxy menu        # 打开管理菜单
-vproxy --install   # 快速安装
+vproxy --install   # 执行完整安装
 vproxy --uninstall # 快速卸载
-vproxy --update    # 更新脚本和核心
 vproxy --help      # 显示帮助信息
 ```
 
@@ -100,7 +114,7 @@ vproxy --help      # 显示帮助信息
 
 ## 🔧 故障排查 / Troubleshooting
 
-**如果 `vproxy` 命令不可用**：
+### `vproxy` 命令不可用
 
 ```bash
 # 手动创建链接
@@ -110,17 +124,64 @@ ln -sf /etc/vproxy/install.sh /usr/local/bin/vproxy
 bash /etc/vproxy/install.sh
 ```
 
-**查看服务状态**：
+### `jq: command not found` 错误
+
+如果在菜单中选择 "安装/更新 sing-box" 时遇到此错误：
+
+```bash
+# 方法1：先执行完整安装
+bash <(curl -sL https://raw.githubusercontent.com/2670044605/htaOne-Click-Script/main/install.sh) --install
+
+# 方法2：手动安装 jq
+apt install -y jq        # Debian/Ubuntu
+yum install -y jq        # CentOS/RHEL
+dnf install -y jq        # Fedora
+apk add jq               # Alpine
+pacman -S jq             # Arch
+zypper install jq        # openSUSE
+```
+
+### 查看服务状态
 
 ```bash
 systemctl status vproxy
 ```
 
-**查看日志**：
+### 查看日志
 
 ```bash
 tail -f /etc/vproxy/sing-box.log
 ```
+
+### 重启服务
+
+```bash
+systemctl restart vproxy
+```
+
+## 📝 更新日志 / Changelog
+
+### v2.1.0 (2026-01-12)
+- ✨ 新增：首次运行智能检测，自动提示完整安装
+- ✨ 新增：菜单选项自动检查并安装缺失依赖
+- ✨ 新增：sing-box 版本获取备用方案（无需 jq）
+- 🐛 修复：`jq: command not found` 错误
+- 🐛 修复：菜单选项 1 未安装依赖直接下载的问题
+
+### v2.0.0 (2026-01-12)
+- ✨ 新增：支持更多 Linux 发行版（Alpine, Arch, openSUSE）
+- ✨ 新增：使用符号链接，`vproxy` 命令安装后立即可用
+- ✨ 新增：UUID 生成兼容方案
+- ✨ 新增：命令行参数支持（--install, --uninstall, --help）
+- 🐛 修复：移除 `set -e`，使用自定义错误处理
+- 🐛 修复：JSON 配置语法错误（移除注释）
+- 🐛 修复：`vproxy: command not found` 问题
+
+### v1.0.0 (2026-01-12)
+- 🎉 初始版本发布
+- ✨ 支持 Hysteria2, TUIC v5, AnyTLS
+- ✨ 自动 TLS 证书申请
+- ✨ 命令行管理菜单
 
 ## 📜 免责声明 / Disclaimer
 本项目仅供学习和技术研究使用。使用者在下载、安装、使用本软件时，即视为已阅读并同意本免责声明。作者不对使用本脚本造成的任何损失负责。
