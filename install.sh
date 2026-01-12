@@ -270,7 +270,7 @@ main() {
     chmod +x "$SCRIPT_PATH" 2>/dev/null
     
     # 添加 alias 到 .bashrc（避免重复添加）
-    if ! grep -q "^[[:space:]]*alias vproxy=" /root/.bashrc 2>/dev/null; then
+    if ! grep -q "^[[:space:]]*alias vproxy[[:space:]]*=" /root/.bashrc 2>/dev/null; then
         echo "alias vproxy='bash $SCRIPT_PATH menu'" >> /root/.bashrc
     fi
     
