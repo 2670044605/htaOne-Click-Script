@@ -154,7 +154,7 @@ fi
 check_deps() {
     local missing_deps=""
     for cmd in curl wget jq git; do
-        if ! command -v $cmd &>/dev/null; then
+        if ! command -v "$cmd" &>/dev/null; then
             missing_deps="$missing_deps $cmd"
         fi
     done
@@ -277,17 +277,20 @@ download_sing_box() {
         if command -v jq &>/dev/null; then
             SING_BOX_VERSION=$(curl -sL https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name' | sed 's/v//')
         else
-            # 备用方案1：使用 grep 和 cut
-            SING_BOX_VERSION=$(curl -sL https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4 | sed 's/^v//' | head -1)
+            # 备用方案：获取一次 API 响应，然后尝试不同的解析方法
+            local api_response=$(curl -sL https://api.github.com/repos/SagerNet/sing-box/releases/latest)
             
-            # 备用方案2：如果方案1失败，使用 awk
+            # 方法1：使用 grep 和 cut
+            SING_BOX_VERSION=$(echo "$api_response" | grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4 | sed 's/^v//' | head -1)
+            
+            # 方法2：如果方法1失败，使用 awk
             if [ -z "$SING_BOX_VERSION" ]; then
-                SING_BOX_VERSION=$(curl -sL https://api.github.com/repos/SagerNet/sing-box/releases/latest | awk -F'"' '/"tag_name"/{print $4}' | sed 's/^v//' | head -1)
+                SING_BOX_VERSION=$(echo "$api_response" | awk -F'"' '/"tag_name"/{print $4}' | sed 's/^v//' | head -1)
             fi
             
-            # 备用方案3：如果还是失败，使用 sed
+            # 方法3：如果还是失败，使用 sed
             if [ -z "$SING_BOX_VERSION" ]; then
-                SING_BOX_VERSION=$(curl -sL https://api.github.com/repos/SagerNet/sing-box/releases/latest | sed -n 's/.*"tag_name":"v*\([^"]*\)".*/\1/p' | head -1)
+                SING_BOX_VERSION=$(echo "$api_response" | sed -n 's/.*"tag_name":"v\?\([^"]*\)".*/\1/p' | head -1)
             fi
         fi
         
