@@ -257,10 +257,27 @@ main() {
     done
     create_service
     health_check
-    # 添加 alias
-    echo "alias vproxy='bash $0 menu'" >> /root/.bashrc
-    source /root/.bashrc
-    echo -e "${GREEN}安装完成！运行 'vproxy' 进入菜单。${PLAIN}"
+    # 添加 alias（修复版）
+    SCRIPT_PATH="$INSTALL_DIR/install.sh"
+    
+    # 先保存脚本到固定位置
+    if ! cp "$0" "$SCRIPT_PATH" 2>/dev/null; then
+        if ! curl -sL https://raw.githubusercontent.com/2670044605/htaOne-Click-Script/main/install.sh -o "$SCRIPT_PATH"; then
+            echo -e "${RED}警告: 无法保存脚本到 $SCRIPT_PATH${PLAIN}"
+            echo -e "${YELLOW}vproxy 命令可能无法正常工作${PLAIN}"
+        fi
+    fi
+    chmod +x "$SCRIPT_PATH" 2>/dev/null
+    
+    # 添加 alias 到 .bashrc（避免重复添加）
+    if ! grep -q "^[[:space:]]*alias vproxy[[:space:]]*=" /root/.bashrc 2>/dev/null; then
+        echo "alias vproxy='bash $SCRIPT_PATH menu'" >> /root/.bashrc
+    fi
+    
+    echo -e "${GREEN}安装完成！${PLAIN}"
+    echo -e "${YELLOW}请运行以下命令使 vproxy 命令生效：${PLAIN}"
+    echo -e "${GREEN}source /root/.bashrc${PLAIN}"
+    echo -e "${YELLOW}或者重新登录 SSH 后即可使用 'vproxy' 命令。${PLAIN}"
 }
 
 # 如果参数是 menu，则进入菜单；否则安装
